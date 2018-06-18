@@ -12,7 +12,8 @@ class Player {
 	static Explorer me;
 	static List<Explorer> explorers = new ArrayList<>();
 	static List<Wanderer> wanderers = new ArrayList<>();
-
+	static CellMap cellMap = new CellMap();
+	
     public static void main(String args[]) {
         Scanner in = new Scanner(System.in);
         int width = in.nextInt();
@@ -21,9 +22,18 @@ class Player {
             in.nextLine();
         }
         for (int i = 0; i < height; i++) {
-            String line = in.nextLine();
- //           System.err.println(line); // # - wall,  w - spawn for wanderers,  . - empty cell
+            String line = in.nextLine();  // # - wall,  w - spawn for wanderers,  . - empty cell
+            cellMap.fillCellMapRow(line, i);
+  //          System.err.println(height);
+  //          System.err.println(line); // # - wall,  w - spawn for wanderers,  . - empty cell
+           
         }
+        
+//        System.err.println("");
+//        System.err.println(cellMap.toString(width, height));
+        
+  //      System.err.println("cells " + cellMap.cells.size());
+        
         int sanityLossLonely = in.nextInt(); // how much sanity you lose every turn when alone, always 3 until wood 1
         int sanityLossGroup = in.nextInt(); // how much sanity you lose every turn when near another player, always 1 until wood 1
         int wandererSpawnTime = in.nextInt(); // how many turns the wanderer take to spawn, always 3 until wood 1
@@ -49,14 +59,47 @@ class Player {
             // Write an action using System.out.println()
             // To debug: System.err.println("Debug messages...");
 
-            System.out.println("WAIT"); // MOVE <x> <y> | WAIT
+            System.out.println(doLogic()); // MOVE <x> <y> | WAIT
             
-            System.err.println("exp "+explorers.size());
-            System.err.println("wan "+wanderers.size());
+//            System.err.println("exp "+explorers.size());
+//            System.err.println("wan "+wanderers.size());
             
             cleanEntityLists();
             
         }
+    }
+    
+   
+    
+    static Explorer createExplorer(int x, int y, int id, int param0, int param1, int param2) {
+		return new Explorer(x, y, id, param0, param1, param2);
+    }
+    
+    static Wanderer createtWanderer(int x, int y, int id, int param0, int param1, int param2) {
+    	return new Wanderer(x, y, id, param0, param1, param2);
+    }
+    
+    static void setAllEntities(int i, String entityType, int x, int y, int id, int param0, int param1, int param2) {
+    	if (i == 0) {
+System.err.print("ME - ");
+    		me = createExplorer(x, y, id, param0, param1, param2);    		
+    	} 
+    	else if (entityType.equals("EXPLORER")) {
+    		explorers.add(createExplorer(x, y, id, param0, param1, param2));
+    	}
+    	else if (entityType.equals("WANDERER")) {
+    		wanderers.add(createtWanderer(x, y, id, param0, param1, param2));
+    	}    	
+    }
+    
+    static void cleanEntityLists() {
+    	explorers.clear();
+    	wanderers.clear();
+    }
+    
+    static String doLogic() {
+    	String action = "WAIT";  // MOVE <x> <y> | WAIT
+    	return action;
     }
     
     static class Entity {    	
@@ -81,6 +124,7 @@ class Player {
 			this.sanity = param0;
 			this.param1 = param1;
 			this.param2 = param2;
+System.err.println(this);
 		}
 
 		@Override
@@ -99,6 +143,7 @@ class Player {
 			this.beforeSpawnRecall = param0;
 			this.state = param1;
 			this.target = param2;
+System.err.println(this);
 		}   	
 
 		@Override
@@ -113,35 +158,73 @@ class Player {
     	}
     }
     
-    
-    static Explorer getExplorer(int x, int y, int id, int param0, int param1, int param2) {
-		return new Explorer(x, y, id, param0, param1, param2);
-    }
-    
-    static Wanderer getWanderer(int x, int y, int id, int param0, int param1, int param2) {
-    	return new Wanderer(x, y, id, param0, param1, param2);
-    }
-    
-    static void setAllEntities(int i, String entityType, int x, int y, int id, int param0, int param1, int param2) {
-    	if (i == 0) {
-    		me = getExplorer(x, y, id, param0, param1, param2);
-    		System.err.print("ME - ");
-    	} 
-    	else if (entityType.equals("EXPLORER")) {
-    		explorers.add(getExplorer(x, y, id, param0, param1, param2));
-   // 		System.err.println("add explorer");
-    	}
-    	else if (entityType.equals("WANDERER")) {
-    		wanderers.add(getWanderer(x, y, id, param0, param1, param2));
-  //  		System.err.println("add wanderer");
-    	}
+    static class CellMap {
     	
+    	List<Cell> cells = new LinkedList<>();
+    	
+    	void fillCellMapRow(String line, int y) {
+    		for (int x = 0; x < line.length(); x++) {
+				Cell cell = new Cell(x, y, line.charAt(x));
+    			cells.add(cell);
+//System.err.print(cell.type.sign);
+			}
+//System.err.print('\n');
+    	}   	
+    	
+		public String toString(int width, int height) {
+			StringBuffer buf = new StringBuffer();
+			int c = 0;
+			for (int i = 0; i < height; i++) {			
+				for (int j = 0; j < width; j++) {
+					buf.append(cells.get(c++).toString());
+				}
+				buf.append('\n');
+			}
+    		return buf.toString();
+		}
+
+		static class Cell {
+    		int x;
+    		int y;
+    		CellType type; // # - wall,  w - spawn for wanderers,  . - empty cell
+    		
+    		static enum CellType {
+    			WALL('#'), SPAWN('w'), EMPTY('.');
+    			
+    			char sign;
+
+				private CellType(char sign) {
+					this.sign = sign;
+				}    			
+    		}
+
+			public Cell(int x, int y, char type) {
+				super();
+				this.x = x;
+				this.y = y;
+				this.type = getType(type);
+			}
+
+			private CellType getType(char type) {
+				switch (type) {
+				case '#':
+					return CellType.WALL;
+				case 'w':
+					return CellType.SPAWN;
+				case '.':
+					return CellType.EMPTY;
+				default:
+					throw new RuntimeException("unknown type " + type);
+				}				
+			}
+
+			@Override
+			public String toString() {
+				return "" + type.sign;
+			}			
+    		
+    	}
     }
     
-    static void cleanEntityLists() {
-    	explorers.clear();
-    	wanderers.clear();
-    }
-    
-    
+        
 }
